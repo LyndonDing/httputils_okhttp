@@ -143,11 +143,7 @@ public class HttpUtils {
 					url = url + "?" + json2String(params);
 				}
 			}
-			try {
-				url = URLEncoder.encode(url, "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
+			
 		}
 		
 		if(formBody == null){
@@ -543,7 +539,11 @@ public class HttpUtils {
 			if (!TextUtils.isEmpty(content)) {
 				content += "&";
 			}
-			content += key + "=" + params.opt(key);
+			try {
+				content += key + "=" + URLEncoder.encode(params.opt(key).toString(),"UTF-8");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		return content;
 	}
