@@ -143,15 +143,10 @@ public class HttpUtils {
 					url = url + "?" + json2String(params);
 				}
 			}
-			//判断url中是否含有汉字
-			Pattern p = Pattern.compile("[\u4e00-\u9fa5]");
-			Matcher m = p.matcher(url); 
-			if(m.matches()){
-				try {
-					url = URLEncoder.encode(url, "UTF-8");
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-				}
+			try {
+				url = URLEncoder.encode(url, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
 			}
 		}
 		
