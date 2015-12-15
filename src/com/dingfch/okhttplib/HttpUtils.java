@@ -3,7 +3,9 @@ package com.dingfch.okhttplib;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -17,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
@@ -137,6 +141,16 @@ public class HttpUtils {
 					url = url + json2String(params);
 				} else {
 					url = url + "?" + json2String(params);
+				}
+			}
+			//判断url中是否含有汉字
+			Pattern p = Pattern.compile("[\u4e00-\u9fa5]");
+			Matcher m = p.matcher(url); 
+			if(m.matches()){
+				try {
+					url = URLEncoder.encode(url, "UTF-8");
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
 				}
 			}
 		}
