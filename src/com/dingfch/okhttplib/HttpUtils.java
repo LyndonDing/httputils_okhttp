@@ -212,6 +212,7 @@ public class HttpUtils {
 		mOkHttpClient.newCall(request).enqueue(new Callback() {
 			@Override
 			public void onResponse(Response result) throws IOException {
+				afterRequest(callback, requestCode);
 				String resultData = "";
 				try {
 					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
@@ -231,12 +232,12 @@ public class HttpUtils {
 				if (mCacheData) {
 					CacheUtils.cacheData(url, temp);
 				}
-				afterRequest(callback, requestCode);
 			}
 
 			@Override
 			public void onFailure(Request arg0, final IOException error) {
 				final String cacheData = CacheUtils.getCacheData(url);
+				afterRequest(callback, requestCode);
 				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
 						mDelivery.post(new Runnable() {
@@ -256,7 +257,6 @@ public class HttpUtils {
 						});
 					}
 				}
-				afterRequest(callback, requestCode);
 			}
 		});
 	}
@@ -276,6 +276,7 @@ public class HttpUtils {
 			@Override
 			public void onResponse(Response result) throws IOException {
 				String resultData = "";
+				afterRequest(callback, requestCode);
 				try {
 					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
 				} catch (Exception e) {
@@ -294,12 +295,12 @@ public class HttpUtils {
 				if (mCacheData) {
 					CacheUtils.cacheData(url, temp);
 				}
-				afterRequest(callback, requestCode);
 			}
 
 			@Override
 			public void onFailure(Request arg0, final IOException error) {
 				final String cacheData = CacheUtils.getCacheData(url);
+				afterRequest(callback, requestCode);
 				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
 						mDelivery.post(new Runnable() {
@@ -319,7 +320,6 @@ public class HttpUtils {
 						});
 					}
 				}
-				afterRequest(callback, requestCode);
 			}
 		});
 	}
@@ -338,6 +338,7 @@ public class HttpUtils {
 
 			@Override
 			public void onResponse(Response result) throws IOException {
+				afterRequest(callback, requestCode);
 				String resultData = "";
 				try {
 					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
@@ -357,11 +358,11 @@ public class HttpUtils {
 				if (mCacheData) {
 					CacheUtils.cacheData(url, temp);
 				}
-				afterRequest(callback, requestCode);
 			}
 
 			@Override
 			public void onFailure(Request arg0, final IOException error) {
+				afterRequest(callback, requestCode);
 				final String cacheData = CacheUtils.getCacheData(url);
 				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
@@ -382,7 +383,6 @@ public class HttpUtils {
 						});
 					}
 				}
-				afterRequest(callback, requestCode);
 			}
 		});
 	}
