@@ -101,9 +101,16 @@ public class HttpUtils {
 		CacheUtils.clearCacheDate();
 	}
 	
-	public static void setRequestHeader(Map<String, String> headers){
+	public static void setRequestHeader(Map<String, String> headers, HeaderCallBack callBack){
 		if(headers != null){
 			mHeaders = Headers.of(headers);
+			if(callBack != null){
+				if(mHeaders != null){
+					callBack.onHeaderSuccess();
+				}else{
+					callBack.onHeaderError();
+				}
+			}
 		}
 	}
 	/**
