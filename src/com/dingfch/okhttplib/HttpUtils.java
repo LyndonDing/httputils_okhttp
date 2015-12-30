@@ -3,7 +3,8 @@ package com.dingfch.okhttplib;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.KeyManagementException;
@@ -19,8 +20,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
@@ -38,7 +37,9 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 
+import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.Headers;
@@ -57,20 +58,23 @@ import com.squareup.okhttp.Response;
 public class HttpUtils {
 	private static HttpUtils mInstance;
 	private static Headers mHeaders = null;
+	private static boolean mNeedDecodeResult = false;
 	private static final String defaultCode = "requestCode_default";
 	private static final OkHttpClient mOkHttpClient = new OkHttpClient();
 	private static final Handler mDelivery = new Handler(Looper.getMainLooper());
 	private static final MediaType MEDIA_TYPE_PNG = MediaType.parse("image/png");
 	private static final MediaType MEDIA_TYPE_JPG = MediaType.parse("image/jpeg");
 	static {
-		mOkHttpClient.setConnectTimeout(30, TimeUnit.SECONDS);
+		mOkHttpClient.setConnectTimeout(10, TimeUnit.SECONDS);
+		mOkHttpClient.setReadTimeout(30, TimeUnit.SECONDS);
+		mOkHttpClient.setWriteTimeout(30, TimeUnit.SECONDS);
 		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
 			@Override
 			public boolean verify(String hostname, SSLSession session) {
 				return true;
 			}
 	      };
-		mOkHttpClient.setHostnameVerifier(hostnameVerifier);
+
 	}
 	//
 	private static boolean mCacheData = false;
@@ -99,6 +103,10 @@ public class HttpUtils {
 
 	public static void clearCacheData() {
 		CacheUtils.clearCacheDate();
+	}
+	
+	public static void setDecodeResult(boolean decodeResult) {
+		mNeedDecodeResult = decodeResult;
 	}
 	
 	public static void setRequestHeader(Map<String, String> headers, HeaderCallBack callBack){
@@ -155,16 +163,16 @@ public class HttpUtils {
 		
 		if(formBody == null){
 			if(mHeaders != null){
-				request = new Request.Builder().headers(mHeaders).url(url).build();
+				request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).headers(mHeaders).url(url).build();
 			}else{
-				request = new Request.Builder().url(url).build();
+				request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).url(url).build();
 			}
 		} else{
 			if(post){
 				if(mHeaders != null){
-					request = new Request.Builder().headers(mHeaders).url(url).post(formBody).build();
+					request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).headers(mHeaders).url(url).post(formBody).build();
 				}else{
-					request = new Request.Builder().url(url).post(formBody).build();
+					request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).url(url).post(formBody).build();
 				}
 			}
 		}
@@ -214,10 +222,10 @@ public class HttpUtils {
 			public void onResponse(Response result) throws IOException {
 				afterRequest(callback, requestCode);
 				String resultData = "";
-				try {
+				if(mNeedDecodeResult){
 					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
-				} catch (Exception e) {
-					e.printStackTrace();
+				}else{
+					resultData = result.body().string();
 				}
 				final String temp = resultData;
 				if(callback != null){
@@ -225,6 +233,8 @@ public class HttpUtils {
 						@Override
 						public void run() {
 							callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, temp);
+							Log.e("HttpUtils", url);
+							Log.e("HttpUtils", temp);
 						}
 					});
 				}
@@ -277,10 +287,10 @@ public class HttpUtils {
 			public void onResponse(Response result) throws IOException {
 				String resultData = "";
 				afterRequest(callback, requestCode);
-				try {
+				if(mNeedDecodeResult){
 					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
-				} catch (Exception e) {
-					e.printStackTrace();
+				}else{
+					resultData = result.body().string();
 				}
 				final String temp = resultData;
 				if(callback != null){
@@ -340,10 +350,10 @@ public class HttpUtils {
 			public void onResponse(Response result) throws IOException {
 				afterRequest(callback, requestCode);
 				String resultData = "";
-				try {
+				if(mNeedDecodeResult){
 					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
-				} catch (Exception e) {
-					e.printStackTrace();
+				}else{
+					resultData = result.body().string();
 				}
 				final String temp = resultData;
 				if(callback != null){
@@ -507,7 +517,11 @@ public class HttpUtils {
 			public void onResponse(Response result) throws IOException {
 				String resultData = "";
 				try {
-					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
+					if(mNeedDecodeResult){
+						resultData = URLDecoder.decode(result.body().string(), "UTF-8");
+					}else{
+						resultData = result.body().string();
+					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
