@@ -165,7 +165,7 @@ public class HttpUtils {
 		} else{
 			if(post){
 				if(mHeaders != null){
-					request = new Request.Builder().url(url).post(formBody).build();
+					request = new Request.Builder().headers(mHeaders).url(url).post(formBody).build();
 				}else{
 					request = new Request.Builder().url(url).post(formBody).build();
 				}
