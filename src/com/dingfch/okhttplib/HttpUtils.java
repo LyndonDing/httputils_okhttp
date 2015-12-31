@@ -3,8 +3,6 @@ package com.dingfch.okhttplib;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.CookieManager;
-import java.net.CookiePolicy;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.KeyManagementException;
@@ -41,6 +39,7 @@ import android.util.Log;
 
 import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.ConnectionPool;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.MediaType;
@@ -163,16 +162,16 @@ public class HttpUtils {
 		
 		if(formBody == null){
 			if(mHeaders != null){
-				request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).headers(mHeaders).url(url).build();
+				request = new Request.Builder().headers(mHeaders).url(url).build();
 			}else{
-				request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).url(url).build();
+				request = new Request.Builder().url(url).build();
 			}
 		} else{
 			if(post){
 				if(mHeaders != null){
-					request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).headers(mHeaders).url(url).post(formBody).build();
+					request = new Request.Builder().url(url).post(formBody).build();
 				}else{
-					request = new Request.Builder().cacheControl(CacheControl.FORCE_NETWORK).url(url).post(formBody).build();
+					request = new Request.Builder().url(url).post(formBody).build();
 				}
 			}
 		}
@@ -248,6 +247,7 @@ public class HttpUtils {
 			public void onFailure(Request arg0, final IOException error) {
 				final String cacheData = CacheUtils.getCacheData(url);
 				afterRequest(callback, requestCode);
+				
 				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
 						mDelivery.post(new Runnable() {
@@ -311,6 +311,7 @@ public class HttpUtils {
 			public void onFailure(Request arg0, final IOException error) {
 				final String cacheData = CacheUtils.getCacheData(url);
 				afterRequest(callback, requestCode);
+				
 				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
 						mDelivery.post(new Runnable() {
@@ -373,6 +374,7 @@ public class HttpUtils {
 			@Override
 			public void onFailure(Request arg0, final IOException error) {
 				afterRequest(callback, requestCode);
+
 				final String cacheData = CacheUtils.getCacheData(url);
 				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
