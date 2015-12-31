@@ -35,11 +35,8 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
 
-import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.Callback;
-import com.squareup.okhttp.ConnectionPool;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.MediaType;
@@ -73,10 +70,10 @@ public class HttpUtils {
 				return true;
 			}
 	      };
-
+	      mOkHttpClient.setHostnameVerifier(hostnameVerifier);
 	}
 	//
-	private static boolean mCacheData = false;
+//	private static boolean mCacheData = false;
 	
 	/**
 	 * 单向认证 调用 {@link #setCertificates(InputStream...)} 
@@ -93,9 +90,8 @@ public class HttpUtils {
 		return mInstance;
 	}
 
-	public static void setCacheData(Context context, boolean cacheData) {
-		mCacheData = cacheData;
-		if (mCacheData == true && !CacheUtils.isInited()) {
+	public static void setCacheData(Context context) {
+		if (!CacheUtils.isInited()) {
 			CacheUtils.initCache(context, "NetCache");
 		}
 	}
@@ -184,7 +180,11 @@ public class HttpUtils {
 	 * @param callback 回调
 	 */
 	public static void requestServer(final String url, final NetCallBack callback) {
-		requestServer(defaultCode, url, callback);
+		requestServer(defaultCode, url, null, callback, false);
+	}
+	
+	public static void requestServer(final String url, final NetCallBack callback, boolean bNeedCacheData) {
+		requestServer(defaultCode, url, null, callback, bNeedCacheData);
 	}
 
 	/**
@@ -194,7 +194,11 @@ public class HttpUtils {
 	 * @param callback 回调
 	 */
 	public static void requestServer(final String url, JSONObject params, final NetCallBack callback) {
-		requestServer(defaultCode, url, params, callback);
+		requestServer(defaultCode, url, params, callback, false);
+	}
+	
+	public static void requestServer(final String url, JSONObject params, final NetCallBack callback, boolean bNeedCacheData) {
+		requestServer(defaultCode, url, params, callback, bNeedCacheData);
 	}
 
 	/**
@@ -204,72 +208,76 @@ public class HttpUtils {
 	 * @param callback 回调
 	 */
 	public static void requestServerByPost(final String url, JSONObject params, final NetCallBack callback) {
-		requestServerByPost(defaultCode, url, params, callback);
+		requestServerByPost(defaultCode, url, params, callback, false);
 	}
-
-	/**
-	 * GET 异步
-	 * @param requestCode 请求码 ，为在同一类中区分多个请求
-	 * @param url 请求 url
-	 * @param callback 回调
-	 */
-	public static void requestServer(final String requestCode, final String url, final NetCallBack callback) {
-		Request request = requestFactory(url);
-		startRequest(callback, requestCode);
-		mOkHttpClient.newCall(request).enqueue(new Callback() {
-			@Override
-			public void onResponse(Response result) throws IOException {
-				afterRequest(callback, requestCode);
-				String resultData = "";
-				if(mNeedDecodeResult){
-					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
-				}else{
-					resultData = result.body().string();
-				}
-				final String temp = resultData;
-				if(callback != null){
-					mDelivery.post(new Runnable() {
-						@Override
-						public void run() {
-							callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, temp);
-							Log.e("HttpUtils", url);
-							Log.e("HttpUtils", temp);
-						}
-					});
-				}
-				
-				if (mCacheData) {
-					CacheUtils.cacheData(url, temp);
-				}
-			}
-
-			@Override
-			public void onFailure(Request arg0, final IOException error) {
-				final String cacheData = CacheUtils.getCacheData(url);
-				afterRequest(callback, requestCode);
-				
-				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
-					if(callback != null){
-						mDelivery.post(new Runnable() {
-							@Override
-							public void run() {
-								callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, cacheData);
-							}
-						});
-					}
-				} else {
-					if(callback != null){
-						mDelivery.post(new Runnable() {
-							@Override
-							public void run() {
-								callback.onError(error.toString());
-							}
-						});
-					}
-				}
-			}
-		});
+	
+	public static void requestServerByPost(final String url, JSONObject params, final NetCallBack callback, boolean bNeedCacheData) {
+		requestServerByPost(defaultCode, url, params, callback, bNeedCacheData);
 	}
+//
+//	/**
+//	 * GET 异步
+//	 * @param requestCode 请求码 ，为在同一类中区分多个请求
+//	 * @param url 请求 url
+//	 * @param callback 回调
+//	 */
+//	public static void requestServer(final String requestCode, final String url, final NetCallBack callback, boolean bNeedCacheData) {
+//		Request request = requestFactory(url);
+//		startRequest(callback, requestCode);
+//		mOkHttpClient.newCall(request).enqueue(new Callback() {
+//			@Override
+//			public void onResponse(Response result) throws IOException {
+//				afterRequest(callback, requestCode);
+//				String resultData = "";
+//				if(mNeedDecodeResult){
+//					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
+//				}else{
+//					resultData = result.body().string();
+//				}
+//				final String temp = resultData;
+//				if(callback != null){
+//					mDelivery.post(new Runnable() {
+//						@Override
+//						public void run() {
+//							callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, temp);
+//							Log.e("HttpUtils", url);
+//							Log.e("HttpUtils", temp);
+//						}
+//					});
+//				}
+//				
+//				if (mCacheData) {
+//					CacheUtils.cacheData(url, temp);
+//				}
+//			}
+//
+//			@Override
+//			public void onFailure(Request arg0, final IOException error) {
+//				final String cacheData = CacheUtils.getCacheData(url);
+//				afterRequest(callback, requestCode);
+//				
+//				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
+//					if(callback != null){
+//						mDelivery.post(new Runnable() {
+//							@Override
+//							public void run() {
+//								callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, cacheData);
+//							}
+//						});
+//					}
+//				} else {
+//					if(callback != null){
+//						mDelivery.post(new Runnable() {
+//							@Override
+//							public void run() {
+//								callback.onError(error.toString());
+//							}
+//						});
+//					}
+//				}
+//			}
+//		});
+//	}
 
 	/**
 	 * GET 异步
@@ -278,7 +286,7 @@ public class HttpUtils {
 	 * @param params 参数
 	 * @param callback 回调
 	 */
-	public static void requestServer(final String requestCode, final String url, JSONObject params, final NetCallBack callback) {
+	public static void requestServer(final String requestCode, final String url, JSONObject params, final NetCallBack callback, final boolean bNeedCacheData) {
 		Request request = requestFactory(url, params, false);
 		startRequest(callback, requestCode);
 		mOkHttpClient.newCall(request).enqueue(new Callback() {
@@ -302,7 +310,7 @@ public class HttpUtils {
 					});
 				}
 				
-				if (mCacheData) {
+				if (bNeedCacheData) {
 					CacheUtils.cacheData(url, temp);
 				}
 			}
@@ -312,7 +320,7 @@ public class HttpUtils {
 				final String cacheData = CacheUtils.getCacheData(url);
 				afterRequest(callback, requestCode);
 				
-				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
+				if (bNeedCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
 						mDelivery.post(new Runnable() {
 							@Override
@@ -342,7 +350,7 @@ public class HttpUtils {
 	 * @param params 参数
 	 * @param callback 回调
 	 */
-	public static void requestServerByPost(final String requestCode, final String url, JSONObject params, final NetCallBack callback) {
+	public static void requestServerByPost(final String requestCode, final String url, JSONObject params, final NetCallBack callback, final boolean bNeedCacheData) {
 		Request request = requestFactory(url, params, true);
 		startRequest(callback, requestCode);
 		mOkHttpClient.newCall(request).enqueue(new Callback() {
@@ -366,7 +374,7 @@ public class HttpUtils {
 					});
 				}
 				
-				if (mCacheData) {
+				if (bNeedCacheData) {
 					CacheUtils.cacheData(url, temp);
 				}
 			}
@@ -376,7 +384,7 @@ public class HttpUtils {
 				afterRequest(callback, requestCode);
 
 				final String cacheData = CacheUtils.getCacheData(url);
-				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
+				if (bNeedCacheData && !TextUtils.isEmpty(cacheData)) {
 					if(callback != null){
 						mDelivery.post(new Runnable() {
 							@Override
