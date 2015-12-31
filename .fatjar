@@ -1,0 +1,14 @@
+#Fat Jar Configuration File
+#Wed Dec 30 18:36:23 CST 2015
+onejar.license.required=true
+manifest.classpath=
+manifest.removesigners=true
+onejar.checkbox=false
+jarname=httputils_1.3.jar
+manifest.mergeall=true
+manifest.mainclass=
+manifest.file=<createnew>
+jarname.isextern=false
+onejar.expand=
+excludes=<po|OkHttp>~com/~example/;<po|OkHttp>~.gitignore
+includes=
