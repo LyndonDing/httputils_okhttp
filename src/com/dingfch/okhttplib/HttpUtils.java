@@ -92,7 +92,7 @@ public class HttpUtils {
 		return mInstance;
 	}
 	
-	public void setFollowRedirects(boolean bNeedRedirects){
+	public static void setFollowRedirects(boolean bNeedRedirects){
 		mOkHttpClient.setFollowRedirects(bNeedRedirects);
 		mOkHttpClient.setFollowSslRedirects(bNeedRedirects);
 	}
