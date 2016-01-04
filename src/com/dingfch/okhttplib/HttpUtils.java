@@ -64,6 +64,8 @@ public class HttpUtils {
 		mOkHttpClient.setConnectTimeout(10, TimeUnit.SECONDS);
 		mOkHttpClient.setReadTimeout(30, TimeUnit.SECONDS);
 		mOkHttpClient.setWriteTimeout(30, TimeUnit.SECONDS);
+		mOkHttpClient.setFollowRedirects(false);
+		mOkHttpClient.setFollowSslRedirects(false);
 		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
 			@Override
 			public boolean verify(String hostname, SSLSession session) {
@@ -88,6 +90,11 @@ public class HttpUtils {
 			}
 		}
 		return mInstance;
+	}
+	
+	public void setFollowRedirects(boolean bNeedRedirects){
+		mOkHttpClient.setFollowRedirects(bNeedRedirects);
+		mOkHttpClient.setFollowSslRedirects(bNeedRedirects);
 	}
 
 	public static void setCacheData(Context context) {
@@ -577,6 +584,14 @@ public class HttpUtils {
 			}
 		}
 		return content;
+	}
+	
+	public static String getCacheData(String url){
+		try {
+			return CacheUtils.getCacheData(url);
+		} catch (Exception e) {
+			return "";
+		}
 	}
 	
 	// add support for https
