@@ -64,8 +64,6 @@ public class HttpUtils {
 		mOkHttpClient.setConnectTimeout(10, TimeUnit.SECONDS);
 		mOkHttpClient.setReadTimeout(30, TimeUnit.SECONDS);
 		mOkHttpClient.setWriteTimeout(30, TimeUnit.SECONDS);
-		mOkHttpClient.setFollowRedirects(false);
-		mOkHttpClient.setFollowSslRedirects(false);
 		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
 			@Override
 			public boolean verify(String hostname, SSLSession session) {
