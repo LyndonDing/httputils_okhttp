@@ -28,6 +28,16 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import okhttp3.Callback;
+import okhttp3.FormBody;
+import okhttp3.Headers;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 import org.json.JSONObject;
 
 import android.annotation.SuppressLint;
@@ -35,16 +45,6 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-
-import com.squareup.okhttp.Callback;
-import com.squareup.okhttp.FormEncodingBuilder;
-import com.squareup.okhttp.Headers;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.MultipartBuilder;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
 
 /**
  * 网络请求工具类
@@ -56,21 +56,23 @@ public class HttpUtils {
 	private static Headers mHeaders = null;
 	private static boolean mNeedDecodeResult = false;
 	private static final String defaultCode = "requestCode_default";
-	private static final OkHttpClient mOkHttpClient = new OkHttpClient();
+	private static OkHttpClient mOkHttpClient;
 	private static final Handler mDelivery = new Handler(Looper.getMainLooper());
 	private static final MediaType MEDIA_TYPE_PNG = MediaType.parse("image/png");
 	private static final MediaType MEDIA_TYPE_JPG = MediaType.parse("image/jpeg");
 	static {
-		mOkHttpClient.setConnectTimeout(10, TimeUnit.SECONDS);
-		mOkHttpClient.setReadTimeout(30, TimeUnit.SECONDS);
-		mOkHttpClient.setWriteTimeout(30, TimeUnit.SECONDS);
 		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
 			@Override
 			public boolean verify(String hostname, SSLSession session) {
 				return true;
 			}
-	      };
-	      mOkHttpClient.setHostnameVerifier(hostnameVerifier);
+		};
+		OkHttpClient.Builder builder = new OkHttpClient.Builder()
+						.connectTimeout(10, TimeUnit.SECONDS)
+						.readTimeout(30, TimeUnit.SECONDS)
+						.writeTimeout(30, TimeUnit.SECONDS)
+						.hostnameVerifier(hostnameVerifier);
+		mOkHttpClient = builder.build();
 	}
 	//
 //	private static boolean mCacheData = false;
@@ -90,11 +92,6 @@ public class HttpUtils {
 		return mInstance;
 	}
 	
-	public static void setFollowRedirects(boolean bNeedRedirects){
-		mOkHttpClient.setFollowRedirects(bNeedRedirects);
-		mOkHttpClient.setFollowSslRedirects(bNeedRedirects);
-	}
-
 	public static void setCacheData(Context context) {
 		if (!CacheUtils.isInited()) {
 			CacheUtils.initCache(context, "NetCache");
@@ -142,11 +139,11 @@ public class HttpUtils {
 		Request request = null;
 		RequestBody formBody = null;
 		if(post){
-			FormEncodingBuilder buider = new FormEncodingBuilder();
+			FormBody.Builder buider = new FormBody.Builder();
 			if(params != null && params.keys() != null){
 				for (Iterator<String> iterator = params.keys(); iterator.hasNext();) {
 					String key = iterator.next();
-					buider.add(key, params.optString(key));
+					buider.addEncoded(key, params.optString(key));
 				}
 				formBody = buider.build();
 			}
@@ -452,13 +449,13 @@ public class HttpUtils {
 			if (responseCode >= 300) {
 				try {
 					response.body().close();
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 			try {
 				return response.body().byteStream();
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		} catch (Exception e) {
@@ -508,7 +505,7 @@ public class HttpUtils {
 	//upload image
 	@SuppressLint("DefaultLocale")
 	public static void uploadImage(String url, String bodyName, ArrayList<String> fileNames, final NetCallBack callback){
-		MultipartBuilder builder = new MultipartBuilder().type(MultipartBuilder.FORM);
+		MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
 		String name = "";
 		for (int i = 0; i < fileNames.size(); ++i) {
 			name = fileNames.get(i);
@@ -623,7 +620,7 @@ public class HttpUtils {
 			SSLContext sslContext = SSLContext.getInstance("TLS");
 
 			sslContext.init(keyManagers, new TrustManager[] { new CustomeTrustManager(chooseTrustManager(trustManagers)) }, new SecureRandom());
-			mOkHttpClient.setSslSocketFactory(sslContext.getSocketFactory());
+			mOkHttpClient.newBuilder().sslSocketFactory(sslContext.getSocketFactory());
 			
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
