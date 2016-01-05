@@ -1,6 +1,5 @@
 package com.dingfch.okhttplib;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
@@ -14,7 +13,6 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -31,14 +29,14 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.Callback;
 import okhttp3.FormBody;
 import okhttp3.Headers;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
 import org.json.JSONObject;
+
+import com.dingfch.okhttplib.requestbody.ProgressRequestListener;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -57,9 +55,9 @@ public class HttpUtils {
 	private static boolean mNeedDecodeResult = false;
 	private static final String defaultCode = "requestCode_default";
 	private static OkHttpClient mOkHttpClient;
+	private static UploadImageUtils mImgUtils = new UploadImageUtils();
 	private static final Handler mDelivery = new Handler(Looper.getMainLooper());
-	private static final MediaType MEDIA_TYPE_PNG = MediaType.parse("image/png");
-	private static final MediaType MEDIA_TYPE_JPG = MediaType.parse("image/jpeg");
+	
 	static {
 		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
 			@Override
@@ -447,65 +445,10 @@ public class HttpUtils {
 	}
 	
 	//upload image
-	@SuppressLint("DefaultLocale")
-	public static void uploadImage(String url, String bodyName, ArrayList<String> fileNames, final NetCallBack callback){
-		MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
-		String name = "";
-		for (int i = 0; i < fileNames.size(); ++i) {
-			name = fileNames.get(i);
-			if(name.toLowerCase().endsWith("png")){
-				builder.addFormDataPart(bodyName + i, null, RequestBody.create(MEDIA_TYPE_PNG, new File(name)));
-			} else {
-				builder.addFormDataPart(bodyName + i, null, RequestBody.create(MEDIA_TYPE_JPG, new File(name)));
-			}
-		}
-		RequestBody requestBody = builder.build();
-		Request request = null;
-		if(mHeaders != null){
-			request = new Request.Builder().headers(mHeaders).url(url).post(requestBody).build();
-		}else{
-			request = new Request.Builder().url(url).post(requestBody).build();
-		}
+	public static void uploadImage(String url, JSONObject bodyNamesToFilePath, ProgressRequestListener listener, final NetCallBack callback){
 		startRequest(callback, "");
-		mOkHttpClient.newCall(request).enqueue(new Callback() {
-			
-			@Override
-			public void onResponse(Response result) throws IOException {
-				String resultData = "";
-				try {
-					if(mNeedDecodeResult){
-						resultData = URLDecoder.decode(result.body().string(), "UTF-8");
-					}else{
-						resultData = result.body().string();
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				final String temp = resultData;
-				if(callback != null){
-					mDelivery.post(new Runnable() {
-						@Override
-						public void run() {
-							callback.onSuccess("", temp);
-						}
-					});
-				}
-				afterRequest(callback, "");
-			}
-			
-			@Override
-			public void onFailure(Request arg0, final IOException error) {
-				if(callback != null){
-					mDelivery.post(new Runnable() {
-						@Override
-						public void run() {
-							callback.onError(error.toString());
-						}
-					});
-				}
-				afterRequest(callback, "");
-			}
-		});
+		mImgUtils.uploadImage(mOkHttpClient, mHeaders, mDelivery, url, bodyNamesToFilePath, listener, callback);
+		afterRequest(callback, "");
 	}
 
 	@SuppressWarnings("unchecked")
