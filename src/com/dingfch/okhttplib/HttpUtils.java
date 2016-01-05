@@ -118,14 +118,6 @@ public class HttpUtils {
 			}
 		}
 	}
-	/**
-	 * 
-	 * @param url 请求url
-	 * @return
-	 */
-	private static Request requestFactory(String url){
-		return requestFactory(url, null, false);
-	}
 	
 	/**
 	 * Request Factory
@@ -185,8 +177,16 @@ public class HttpUtils {
 		requestServer(defaultCode, url, null, callback, false);
 	}
 	
+	public static void requestServer(final String requestCode, final String url, final NetCallBack callback) {
+		requestServer(requestCode, url, null, callback, false);
+	}
+	
 	public static void requestServer(final String url, final NetCallBack callback, boolean bNeedCacheData) {
 		requestServer(defaultCode, url, null, callback, bNeedCacheData);
+	}
+	
+	public static void requestServer(final String requestCode, final String url, final NetCallBack callback, boolean bNeedCacheData) {
+		requestServer(requestCode, url, null, callback, bNeedCacheData);
 	}
 
 	/**
@@ -199,10 +199,14 @@ public class HttpUtils {
 		requestServer(defaultCode, url, params, callback, false);
 	}
 	
+	public static void requestServer(final String requestCode, final String url, JSONObject params, final NetCallBack callback) {
+		requestServer(requestCode, url, params, callback, false);
+	}
+	
 	public static void requestServer(final String url, JSONObject params, final NetCallBack callback, boolean bNeedCacheData) {
 		requestServer(defaultCode, url, params, callback, bNeedCacheData);
 	}
-
+	
 	/**
 	 * POST 异步
 	 * @param url 请求url
@@ -213,74 +217,14 @@ public class HttpUtils {
 		requestServerByPost(defaultCode, url, params, callback, false);
 	}
 	
+	public static void requestServerByPost(final String requestCode, final String url, JSONObject params, final NetCallBack callback) {
+		requestServerByPost(requestCode, url, params, callback, false);
+	}
+	
 	public static void requestServerByPost(final String url, JSONObject params, final NetCallBack callback, boolean bNeedCacheData) {
 		requestServerByPost(defaultCode, url, params, callback, bNeedCacheData);
 	}
-//
-//	/**
-//	 * GET 异步
-//	 * @param requestCode 请求码 ，为在同一类中区分多个请求
-//	 * @param url 请求 url
-//	 * @param callback 回调
-//	 */
-//	public static void requestServer(final String requestCode, final String url, final NetCallBack callback, boolean bNeedCacheData) {
-//		Request request = requestFactory(url);
-//		startRequest(callback, requestCode);
-//		mOkHttpClient.newCall(request).enqueue(new Callback() {
-//			@Override
-//			public void onResponse(Response result) throws IOException {
-//				afterRequest(callback, requestCode);
-//				String resultData = "";
-//				if(mNeedDecodeResult){
-//					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
-//				}else{
-//					resultData = result.body().string();
-//				}
-//				final String temp = resultData;
-//				if(callback != null){
-//					mDelivery.post(new Runnable() {
-//						@Override
-//						public void run() {
-//							callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, temp);
-//							Log.e("HttpUtils", url);
-//							Log.e("HttpUtils", temp);
-//						}
-//					});
-//				}
-//				
-//				if (mCacheData) {
-//					CacheUtils.cacheData(url, temp);
-//				}
-//			}
-//
-//			@Override
-//			public void onFailure(Request arg0, final IOException error) {
-//				final String cacheData = CacheUtils.getCacheData(url);
-//				afterRequest(callback, requestCode);
-//				
-//				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
-//					if(callback != null){
-//						mDelivery.post(new Runnable() {
-//							@Override
-//							public void run() {
-//								callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, cacheData);
-//							}
-//						});
-//					}
-//				} else {
-//					if(callback != null){
-//						mDelivery.post(new Runnable() {
-//							@Override
-//							public void run() {
-//								callback.onError(error.toString());
-//							}
-//						});
-//					}
-//				}
-//			}
-//		});
-//	}
-
+	
 	/**
 	 * GET 异步
 	 * @param requestCode 请求码
