@@ -36,6 +36,7 @@ import okhttp3.Response;
 
 import org.json.JSONObject;
 
+import com.dingfch.okhttplib.internal.SingleInetAddressDns;
 import com.dingfch.okhttplib.requestbody.ProgressRequestListener;
 
 import android.annotation.SuppressLint;
@@ -54,24 +55,9 @@ public class HttpUtils {
 	private static Headers mHeaders = null;
 	private static boolean mNeedDecodeResult = false;
 	private static final String defaultCode = "requestCode_default";
-	private static OkHttpClient mOkHttpClient;
-	private static UploadImageUtils mImgUtils = new UploadImageUtils();
-	private static final Handler mDelivery = new Handler(Looper.getMainLooper());
-	
-	static {
-		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
-			@Override
-			public boolean verify(String hostname, SSLSession session) {
-				return true;
-			}
-		};
-		OkHttpClient.Builder builder = new OkHttpClient.Builder()
-						.connectTimeout(10, TimeUnit.SECONDS)
-						.readTimeout(30, TimeUnit.SECONDS)
-						.writeTimeout(30, TimeUnit.SECONDS)
-						.hostnameVerifier(hostnameVerifier);
-		mOkHttpClient = builder.build();
-	}
+	private static OkHttpClient mOkHttpClient = null;
+	private static UploadImageUtils mImgUtils;
+	private static Handler mDelivery;
 	//
 //	private static boolean mCacheData = false;
 	
@@ -90,6 +76,39 @@ public class HttpUtils {
 		return mInstance;
 	}
 	
+	public static boolean HasSettedHeaders(){
+		return mHeaders != null;
+	}
+	
+	public static void init(){
+		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
+			@Override
+			public boolean verify(String hostname, SSLSession session) {
+				return true;
+			}
+		};
+		OkHttpClient.Builder builder = new OkHttpClient.Builder()
+						.connectTimeout(10, TimeUnit.SECONDS)
+						.readTimeout(30, TimeUnit.SECONDS)
+						.writeTimeout(30, TimeUnit.SECONDS)
+						.hostnameVerifier(hostnameVerifier);
+		mOkHttpClient = builder.build();
+		mDelivery = new Handler(Looper.getMainLooper());
+		mImgUtils = new UploadImageUtils();
+	}
+	
+	public static void setSingleInetAddressDns(){
+		mOkHttpClient = mOkHttpClient.newBuilder().dns(SingleInetAddressDns.SYSTEM).build();
+	}
+	
+	public static void setConnectTimeout(int second){
+		mOkHttpClient = mOkHttpClient.newBuilder().connectTimeout(second, TimeUnit.SECONDS).build();
+	}
+	
+	public static void setRetryOnConnectionFailure(boolean retryOnConnectionFailure){
+		mOkHttpClient = mOkHttpClient.newBuilder().retryOnConnectionFailure(retryOnConnectionFailure).build();
+	}
+	
 	public static void setCacheData(Context context) {
 		if (!CacheUtils.isInited()) {
 			CacheUtils.initCache(context, "NetCache");
@@ -106,12 +125,17 @@ public class HttpUtils {
 	
 	public static void setRequestHeader(Map<String, String> headers, HeaderCallBack callBack){
 		if(headers != null){
-			mHeaders = Headers.of(headers);
+			try {
+				mHeaders = Headers.of(headers);
+			} catch (Exception e) {
+				if(callBack != null){
+					callBack.onHeaderError(e.toString());
+				}
+				return;
+			}
 			if(callBack != null){
 				if(mHeaders != null){
 					callBack.onHeaderSuccess();
-				}else{
-					callBack.onHeaderError();
 				}
 			}
 		}
@@ -231,6 +255,7 @@ public class HttpUtils {
 	 * @param callback 回调
 	 */
 	public static void requestServer(final String requestCode, final String url, JSONObject params, final NetCallBack callback, final boolean bNeedCacheData) {
+		throwException();
 		Request request = requestFactory(url, params, false);
 		startRequest(callback, requestCode);
 		mOkHttpClient.newCall(request).enqueue(new Callback() {
@@ -295,6 +320,7 @@ public class HttpUtils {
 	 * @param callback 回调
 	 */
 	public static void requestServerByPost(final String requestCode, final String url, JSONObject params, final NetCallBack callback, final boolean bNeedCacheData) {
+		throwException();
 		Request request = requestFactory(url, params, true);
 		startRequest(callback, requestCode);
 		mOkHttpClient.newCall(request).enqueue(new Callback() {
@@ -368,6 +394,7 @@ public class HttpUtils {
 	 * @return
 	 */
 	public static String synRequestServer(final String url, JSONObject params){
+		throwException();
 		Request request = requestFactory(url, params, false);
 		try {
 			Response response = mOkHttpClient.newCall(request).execute();
@@ -378,12 +405,19 @@ public class HttpUtils {
 		return "";
 	}
 	
+	private static void throwException(){
+		if(mOkHttpClient == null){
+			throw new RuntimeException("null point exception, you must call init() before use it");
+		}
+	}
+	
 	/**
 	 * 加载图片 返回 InputStream
 	 * @param url
 	 * @return
 	 */
 	public static InputStream loadImageStream(String url){
+		throwException();
 		Request.Builder builder = new Request.Builder().url(url);
 		try {
 			Response response = mOkHttpClient.newCall(builder.build()).execute();
@@ -412,6 +446,7 @@ public class HttpUtils {
 	 * @return
 	 */
 	public static String synRequestServerByPost(final String url, JSONObject params){
+		throwException();
 		Request request = requestFactory(url, params, true);
 		try {
 			Response response = mOkHttpClient.newCall(request).execute();
@@ -445,10 +480,10 @@ public class HttpUtils {
 	}
 	
 	//upload image
-	public static void uploadImage(String url, JSONObject bodyNamesToFilePath, ProgressRequestListener listener, final NetCallBack callback){
+	public static void uploadImage(String url, JSONObject bodyNamesToBodyValue, ProgressRequestListener listener, final NetCallBack callback){
+		throwException();
 		startRequest(callback, "");
-		mImgUtils.uploadImage(mOkHttpClient, mHeaders, mDelivery, url, bodyNamesToFilePath, listener, callback);
-		afterRequest(callback, "");
+		mImgUtils.uploadImage(mOkHttpClient, mHeaders, mDelivery, url, bodyNamesToBodyValue, listener, callback);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -501,6 +536,7 @@ public class HttpUtils {
 	 */
 	@SuppressLint("TrulyRandom")
 	public void setCertificates(InputStream[] certificates, InputStream bksFile, String password) {
+		throwException();
 		try {
 			TrustManager[] trustManagers = prepareTrustManager(certificates);
 			KeyManager[] keyManagers = prepareKeyManager(bksFile, password);

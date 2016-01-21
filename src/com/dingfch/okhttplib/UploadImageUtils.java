@@ -32,22 +32,24 @@ public class UploadImageUtils {
 							Headers requestHander, 
 							final Handler handler, 
 							String url, 
-							JSONObject bodyNamesToFilePath, 
+							JSONObject bodyNamesTobodyValue, 
 							ProgressRequestListener listener,
 							final NetCallBack callback) {
 		MultipartBody.Builder builder = new MultipartBody.Builder() .setType(MultipartBody.FORM);
 		try {
-			if (bodyNamesToFilePath != null && bodyNamesToFilePath.keys() != null) {
-				for (Iterator<String> iterator = bodyNamesToFilePath.keys(); iterator.hasNext();) {
+			if (bodyNamesTobodyValue != null && bodyNamesTobodyValue.keys() != null) {
+				for (Iterator<String> iterator = bodyNamesTobodyValue.keys(); iterator.hasNext();) {
 					String bodyName = iterator.next();
-					String filePath = bodyNamesToFilePath.optString(bodyName);
-					File imageFile = new File(filePath);
-					if (filePath.toLowerCase().endsWith("png")) {
+					String bodyValue = bodyNamesTobodyValue.optString(bodyName);
+					File imageFile = new File(bodyValue);
+					if (bodyValue.toLowerCase().endsWith("png")) {
 						builder.addFormDataPart(bodyName, imageFile.getName(), RequestBody.create(MEDIA_TYPE_PNG, imageFile));
-					} else if (filePath.toLowerCase().endsWith("jpg") || filePath.toLowerCase().endsWith("jpeg")){
+					} else if (bodyValue.toLowerCase().endsWith("jpg") || bodyValue.toLowerCase().endsWith("jpeg")){
 						builder.addFormDataPart(bodyName, imageFile.getName(), RequestBody.create(MEDIA_TYPE_JPG, imageFile));
-					} else if (filePath.toLowerCase().endsWith("gif")){
+					} else if (bodyValue.toLowerCase().endsWith("gif")){
 						builder.addFormDataPart(bodyName, imageFile.getName(), RequestBody.create(MEDIA_TYPE_GIF, imageFile));
+					} else {
+						builder.addFormDataPart(bodyName, bodyValue);
 					}
 				}
 			}

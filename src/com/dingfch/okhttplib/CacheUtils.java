@@ -45,7 +45,7 @@ public class CacheUtils {
     	    }
     		mDiskLruCache = DiskLruCache.open(mCacheDir, getAppVersionCode(context), 1, mMaxCacheSize);
     		mInited = true;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
     }
@@ -62,6 +62,8 @@ public class CacheUtils {
 		try {
 			mDiskLruCache.delete();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -87,6 +89,8 @@ public class CacheUtils {
 							mDiskLruCache.flush();
 						} catch (IOException e) {
 							e.printStackTrace();
+						} catch (Exception e) {
+							e.printStackTrace();
 						}
 					}
 				}
@@ -109,7 +113,7 @@ public class CacheUtils {
 					return (String) in.readObject();
 				} catch (IOException e) {
 					e.printStackTrace();
-				} catch (ClassNotFoundException ex) {
+				} catch (Exception ex) {
 					ex.printStackTrace();
 				}
 			}
@@ -124,6 +128,8 @@ public class CacheUtils {
 			mDigest.update(key.getBytes());
 			cacheKey = bytesToHexString(mDigest.digest());
 		} catch (NoSuchAlgorithmException e) {
+			cacheKey = String.valueOf(key.hashCode());
+		} catch (Exception e) {
 			cacheKey = String.valueOf(key.hashCode());
 		}
 		return cacheKey;
