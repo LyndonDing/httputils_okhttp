@@ -4,22 +4,21 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import okhttp3.Callback;
-import okhttp3.Headers;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-
 import org.json.JSONObject;
-
-import com.dingfch.okhttplib.requestbody.ProgressRequestListener;
-import com.dingfch.okhttplib.requestbody.UploadRequestBody;
 
 import android.annotation.SuppressLint;
 import android.os.Handler;
+
+import com.dingfch.okhttplib.requestbody.ProgressRequestListener;
+import com.dingfch.okhttplib.requestbody.UploadRequestBody;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.Headers;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.MultipartBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 @SuppressLint("DefaultLocale")
 public class UploadImageUtils {
@@ -35,7 +34,7 @@ public class UploadImageUtils {
 							JSONObject bodyNamesTobodyValue, 
 							ProgressRequestListener listener,
 							final NetCallBack callback) {
-		MultipartBody.Builder builder = new MultipartBody.Builder() .setType(MultipartBody.FORM);
+		MultipartBuilder builder = new MultipartBuilder().type(MultipartBuilder.FORM);
 		try {
 			if (bodyNamesTobodyValue != null && bodyNamesTobodyValue.keys() != null) {
 				for (Iterator<String> iterator = bodyNamesTobodyValue.keys(); iterator.hasNext();) {
@@ -100,7 +99,7 @@ public class UploadImageUtils {
 			}
 
 			@Override
-			public void onFailure(Request arg0, final IOException error) {
+			public void onFailure(Request request, final IOException error) {
 				if(callback != null){
 					handler.post(new Runnable() {
 						@Override

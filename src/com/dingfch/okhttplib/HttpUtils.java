@@ -1,5 +1,6 @@
 package com.dingfch.okhttplib;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
@@ -13,6 +14,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -26,24 +28,23 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.Headers;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-
 import org.json.JSONObject;
-
-import com.dingfch.okhttplib.internal.SingleInetAddressDns;
-import com.dingfch.okhttplib.requestbody.ProgressRequestListener;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.FormEncodingBuilder;
+import com.squareup.okhttp.Headers;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.MultipartBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 /**
  * 网络请求工具类
@@ -55,9 +56,22 @@ public class HttpUtils {
 	private static Headers mHeaders = null;
 	private static boolean mNeedDecodeResult = false;
 	private static final String defaultCode = "requestCode_default";
-	private static OkHttpClient mOkHttpClient = null;
-	private static UploadImageUtils mImgUtils;
-	private static Handler mDelivery;
+	private static final OkHttpClient mOkHttpClient = new OkHttpClient();
+	private static final Handler mDelivery = new Handler(Looper.getMainLooper());
+	private static final MediaType MEDIA_TYPE_PNG = MediaType.parse("image/png");
+	private static final MediaType MEDIA_TYPE_JPG = MediaType.parse("image/jpeg");
+	static {
+		mOkHttpClient.setConnectTimeout(10, TimeUnit.SECONDS);
+		mOkHttpClient.setReadTimeout(30, TimeUnit.SECONDS);
+		mOkHttpClient.setWriteTimeout(30, TimeUnit.SECONDS);
+		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
+			@Override
+			public boolean verify(String hostname, SSLSession session) {
+				return true;
+			}
+	      };
+	      mOkHttpClient.setHostnameVerifier(hostnameVerifier);
+	}
 	//
 //	private static boolean mCacheData = false;
 	
@@ -76,39 +90,11 @@ public class HttpUtils {
 		return mInstance;
 	}
 	
-	public static boolean HasSettedHeaders(){
-		return mHeaders != null;
+	public static void setFollowRedirects(boolean bNeedRedirects){
+		mOkHttpClient.setFollowRedirects(bNeedRedirects);
+		mOkHttpClient.setFollowSslRedirects(bNeedRedirects);
 	}
-	
-	public static void init(){
-		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
-			@Override
-			public boolean verify(String hostname, SSLSession session) {
-				return true;
-			}
-		};
-		OkHttpClient.Builder builder = new OkHttpClient.Builder()
-						.connectTimeout(10, TimeUnit.SECONDS)
-						.readTimeout(30, TimeUnit.SECONDS)
-						.writeTimeout(30, TimeUnit.SECONDS)
-						.hostnameVerifier(hostnameVerifier);
-		mOkHttpClient = builder.build();
-		mDelivery = new Handler(Looper.getMainLooper());
-		mImgUtils = new UploadImageUtils();
-	}
-	
-	public static void setSingleInetAddressDns(){
-		mOkHttpClient = mOkHttpClient.newBuilder().dns(SingleInetAddressDns.SYSTEM).build();
-	}
-	
-	public static void setConnectTimeout(int second){
-		mOkHttpClient = mOkHttpClient.newBuilder().connectTimeout(second, TimeUnit.SECONDS).build();
-	}
-	
-	public static void setRetryOnConnectionFailure(boolean retryOnConnectionFailure){
-		mOkHttpClient = mOkHttpClient.newBuilder().retryOnConnectionFailure(retryOnConnectionFailure).build();
-	}
-	
+
 	public static void setCacheData(Context context) {
 		if (!CacheUtils.isInited()) {
 			CacheUtils.initCache(context, "NetCache");
@@ -125,17 +111,12 @@ public class HttpUtils {
 	
 	public static void setRequestHeader(Map<String, String> headers, HeaderCallBack callBack){
 		if(headers != null){
-			try {
-				mHeaders = Headers.of(headers);
-			} catch (Exception e) {
-				if(callBack != null){
-					callBack.onHeaderError(e.toString());
-				}
-				return;
-			}
+			mHeaders = Headers.of(headers);
 			if(callBack != null){
 				if(mHeaders != null){
 					callBack.onHeaderSuccess();
+				}else{
+					callBack.onHeaderError();
 				}
 			}
 		}
@@ -153,11 +134,11 @@ public class HttpUtils {
 		Request request = null;
 		RequestBody formBody = null;
 		if(post){
-			FormBody.Builder buider = new FormBody.Builder();
+			FormEncodingBuilder buider = new FormEncodingBuilder();
 			if(params != null && params.keys() != null){
 				for (Iterator<String> iterator = params.keys(); iterator.hasNext();) {
 					String key = iterator.next();
-					buider.addEncoded(key, params.optString(key));
+					buider.add(key, params.optString(key));
 				}
 				formBody = buider.build();
 			}
@@ -199,16 +180,8 @@ public class HttpUtils {
 		requestServer(defaultCode, url, null, callback, false);
 	}
 	
-	public static void requestServer(final String requestCode, final String url, final NetCallBack callback) {
-		requestServer(requestCode, url, null, callback, false);
-	}
-	
 	public static void requestServer(final String url, final NetCallBack callback, boolean bNeedCacheData) {
 		requestServer(defaultCode, url, null, callback, bNeedCacheData);
-	}
-	
-	public static void requestServer(final String requestCode, final String url, final NetCallBack callback, boolean bNeedCacheData) {
-		requestServer(requestCode, url, null, callback, bNeedCacheData);
 	}
 
 	/**
@@ -221,14 +194,10 @@ public class HttpUtils {
 		requestServer(defaultCode, url, params, callback, false);
 	}
 	
-	public static void requestServer(final String requestCode, final String url, JSONObject params, final NetCallBack callback) {
-		requestServer(requestCode, url, params, callback, false);
-	}
-	
 	public static void requestServer(final String url, JSONObject params, final NetCallBack callback, boolean bNeedCacheData) {
 		requestServer(defaultCode, url, params, callback, bNeedCacheData);
 	}
-	
+
 	/**
 	 * POST 异步
 	 * @param url 请求url
@@ -239,14 +208,74 @@ public class HttpUtils {
 		requestServerByPost(defaultCode, url, params, callback, false);
 	}
 	
-	public static void requestServerByPost(final String requestCode, final String url, JSONObject params, final NetCallBack callback) {
-		requestServerByPost(requestCode, url, params, callback, false);
-	}
-	
 	public static void requestServerByPost(final String url, JSONObject params, final NetCallBack callback, boolean bNeedCacheData) {
 		requestServerByPost(defaultCode, url, params, callback, bNeedCacheData);
 	}
-	
+//
+//	/**
+//	 * GET 异步
+//	 * @param requestCode 请求码 ，为在同一类中区分多个请求
+//	 * @param url 请求 url
+//	 * @param callback 回调
+//	 */
+//	public static void requestServer(final String requestCode, final String url, final NetCallBack callback, boolean bNeedCacheData) {
+//		Request request = requestFactory(url);
+//		startRequest(callback, requestCode);
+//		mOkHttpClient.newCall(request).enqueue(new Callback() {
+//			@Override
+//			public void onResponse(Response result) throws IOException {
+//				afterRequest(callback, requestCode);
+//				String resultData = "";
+//				if(mNeedDecodeResult){
+//					resultData = URLDecoder.decode(result.body().string(), "UTF-8");
+//				}else{
+//					resultData = result.body().string();
+//				}
+//				final String temp = resultData;
+//				if(callback != null){
+//					mDelivery.post(new Runnable() {
+//						@Override
+//						public void run() {
+//							callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, temp);
+//							Log.e("HttpUtils", url);
+//							Log.e("HttpUtils", temp);
+//						}
+//					});
+//				}
+//				
+//				if (mCacheData) {
+//					CacheUtils.cacheData(url, temp);
+//				}
+//			}
+//
+//			@Override
+//			public void onFailure(Request arg0, final IOException error) {
+//				final String cacheData = CacheUtils.getCacheData(url);
+//				afterRequest(callback, requestCode);
+//				
+//				if (mCacheData && !TextUtils.isEmpty(cacheData)) {
+//					if(callback != null){
+//						mDelivery.post(new Runnable() {
+//							@Override
+//							public void run() {
+//								callback.onSuccess(requestCode.equals(defaultCode)? "" : requestCode, cacheData);
+//							}
+//						});
+//					}
+//				} else {
+//					if(callback != null){
+//						mDelivery.post(new Runnable() {
+//							@Override
+//							public void run() {
+//								callback.onError(error.toString());
+//							}
+//						});
+//					}
+//				}
+//			}
+//		});
+//	}
+
 	/**
 	 * GET 异步
 	 * @param requestCode 请求码
@@ -255,7 +284,6 @@ public class HttpUtils {
 	 * @param callback 回调
 	 */
 	public static void requestServer(final String requestCode, final String url, JSONObject params, final NetCallBack callback, final boolean bNeedCacheData) {
-		throwException();
 		Request request = requestFactory(url, params, false);
 		startRequest(callback, requestCode);
 		mOkHttpClient.newCall(request).enqueue(new Callback() {
@@ -320,7 +348,6 @@ public class HttpUtils {
 	 * @param callback 回调
 	 */
 	public static void requestServerByPost(final String requestCode, final String url, JSONObject params, final NetCallBack callback, final boolean bNeedCacheData) {
-		throwException();
 		Request request = requestFactory(url, params, true);
 		startRequest(callback, requestCode);
 		mOkHttpClient.newCall(request).enqueue(new Callback() {
@@ -394,7 +421,6 @@ public class HttpUtils {
 	 * @return
 	 */
 	public static String synRequestServer(final String url, JSONObject params){
-		throwException();
 		Request request = requestFactory(url, params, false);
 		try {
 			Response response = mOkHttpClient.newCall(request).execute();
@@ -405,19 +431,12 @@ public class HttpUtils {
 		return "";
 	}
 	
-	private static void throwException(){
-		if(mOkHttpClient == null){
-			throw new RuntimeException("null point exception, you must call init() before use it");
-		}
-	}
-	
 	/**
 	 * 加载图片 返回 InputStream
 	 * @param url
 	 * @return
 	 */
 	public static InputStream loadImageStream(String url){
-		throwException();
 		Request.Builder builder = new Request.Builder().url(url);
 		try {
 			Response response = mOkHttpClient.newCall(builder.build()).execute();
@@ -425,13 +444,13 @@ public class HttpUtils {
 			if (responseCode >= 300) {
 				try {
 					response.body().close();
-				} catch (Exception e) {
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 			try {
 				return response.body().byteStream();
-			} catch (Exception e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		} catch (Exception e) {
@@ -446,7 +465,6 @@ public class HttpUtils {
 	 * @return
 	 */
 	public static String synRequestServerByPost(final String url, JSONObject params){
-		throwException();
 		Request request = requestFactory(url, params, true);
 		try {
 			Response response = mOkHttpClient.newCall(request).execute();
@@ -480,10 +498,65 @@ public class HttpUtils {
 	}
 	
 	//upload image
-	public static void uploadImage(String url, JSONObject bodyNamesToBodyValue, ProgressRequestListener listener, final NetCallBack callback){
-		throwException();
+	@SuppressLint("DefaultLocale")
+	public static void uploadImage(String url, String bodyName, ArrayList<String> fileNames, final NetCallBack callback){
+		MultipartBuilder builder = new MultipartBuilder().type(MultipartBuilder.FORM);
+		String name = "";
+		for (int i = 0; i < fileNames.size(); ++i) {
+			name = fileNames.get(i);
+			if(name.toLowerCase().endsWith("png")){
+				builder.addFormDataPart(bodyName + i, null, RequestBody.create(MEDIA_TYPE_PNG, new File(name)));
+			} else {
+				builder.addFormDataPart(bodyName + i, null, RequestBody.create(MEDIA_TYPE_JPG, new File(name)));
+			}
+		}
+		RequestBody requestBody = builder.build();
+		Request request = null;
+		if(mHeaders != null){
+			request = new Request.Builder().headers(mHeaders).url(url).post(requestBody).build();
+		}else{
+			request = new Request.Builder().url(url).post(requestBody).build();
+		}
 		startRequest(callback, "");
-		mImgUtils.uploadImage(mOkHttpClient, mHeaders, mDelivery, url, bodyNamesToBodyValue, listener, callback);
+		mOkHttpClient.newCall(request).enqueue(new Callback() {
+			
+			@Override
+			public void onResponse(Response result) throws IOException {
+				String resultData = "";
+				try {
+					if(mNeedDecodeResult){
+						resultData = URLDecoder.decode(result.body().string(), "UTF-8");
+					}else{
+						resultData = result.body().string();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				final String temp = resultData;
+				if(callback != null){
+					mDelivery.post(new Runnable() {
+						@Override
+						public void run() {
+							callback.onSuccess("", temp);
+						}
+					});
+				}
+				afterRequest(callback, "");
+			}
+			
+			@Override
+			public void onFailure(Request arg0, final IOException error) {
+				if(callback != null){
+					mDelivery.post(new Runnable() {
+						@Override
+						public void run() {
+							callback.onError(error.toString());
+						}
+					});
+				}
+				afterRequest(callback, "");
+			}
+		});
 	}
 
 	@SuppressWarnings("unchecked")
@@ -536,14 +609,13 @@ public class HttpUtils {
 	 */
 	@SuppressLint("TrulyRandom")
 	public void setCertificates(InputStream[] certificates, InputStream bksFile, String password) {
-		throwException();
 		try {
 			TrustManager[] trustManagers = prepareTrustManager(certificates);
 			KeyManager[] keyManagers = prepareKeyManager(bksFile, password);
 			SSLContext sslContext = SSLContext.getInstance("TLS");
 
 			sslContext.init(keyManagers, new TrustManager[] { new CustomeTrustManager(chooseTrustManager(trustManagers)) }, new SecureRandom());
-			mOkHttpClient.newBuilder().sslSocketFactory(sslContext.getSocketFactory());
+			mOkHttpClient.setSslSocketFactory(sslContext.getSocketFactory());
 			
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();

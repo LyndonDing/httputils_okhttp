@@ -2,8 +2,9 @@ package com.dingfch.okhttplib.requestbody;
 
 import java.io.IOException;
 
-import okhttp3.MediaType;
-import okhttp3.ResponseBody;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.ResponseBody;
+
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ForwardingSource;
@@ -43,7 +44,12 @@ public class DownloadResponseBody extends ResponseBody {
      */
     @Override 
     public long contentLength() {
-        return responseBody.contentLength();
+        try {
+			return responseBody.contentLength();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        return 0;
     }
  
     /**
@@ -53,7 +59,11 @@ public class DownloadResponseBody extends ResponseBody {
     @Override public BufferedSource source() {
         if (bufferedSource == null) {
             //包装
-            bufferedSource = Okio.buffer(source(responseBody.source()));
+            try {
+				bufferedSource = Okio.buffer(source(responseBody.source()));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
         }
         return bufferedSource;
     }
