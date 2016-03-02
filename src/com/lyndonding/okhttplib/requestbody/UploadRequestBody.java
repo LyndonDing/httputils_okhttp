@@ -1,15 +1,15 @@
-package com.dingfch.okhttplib.requestbody;
+package com.lyndonding.okhttplib.requestbody;
 
 import java.io.IOException;
 
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.ForwardingSink;
 import okio.Okio;
 import okio.Sink;
 
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.RequestBody;
 
 
 public  class UploadRequestBody extends RequestBody {

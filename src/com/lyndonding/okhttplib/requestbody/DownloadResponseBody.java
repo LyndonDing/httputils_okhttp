@@ -1,10 +1,9 @@
-package com.dingfch.okhttplib.requestbody;
+package com.lyndonding.okhttplib.requestbody;
 
 import java.io.IOException;
 
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.ResponseBody;
-
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ForwardingSource;
@@ -44,12 +43,7 @@ public class DownloadResponseBody extends ResponseBody {
      */
     @Override 
     public long contentLength() {
-        try {
-			return responseBody.contentLength();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-        return 0;
+    	return responseBody.contentLength();
     }
  
     /**
@@ -59,11 +53,7 @@ public class DownloadResponseBody extends ResponseBody {
     @Override public BufferedSource source() {
         if (bufferedSource == null) {
             //包装
-            try {
-				bufferedSource = Okio.buffer(source(responseBody.source()));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			bufferedSource = Okio.buffer(source(responseBody.source()));
         }
         return bufferedSource;
     }
