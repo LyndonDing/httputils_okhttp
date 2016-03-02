@@ -58,6 +58,7 @@ public class HttpUtils {
 	private static OkHttpClient mOkHttpClient = null;
 	private static UploadImageUtils mImgUtils;
 	private static Handler mDelivery;
+	private static boolean mCancleWhenRequestFailed = false;
 	//
 //	private static boolean mCacheData = false;
 	
@@ -113,6 +114,10 @@ public class HttpUtils {
 
 	public static void clearCacheData() {
 		CacheUtils.clearCacheDate();
+	}
+	
+	public static void cancleRequestWhenFailed(boolean cancel){
+		mCancleWhenRequestFailed = cancel;
 	}
 	
 	public static void setDecodeResult(boolean decodeResult) {
@@ -304,6 +309,11 @@ public class HttpUtils {
 						});
 					}
 				}
+				if(mCancleWhenRequestFailed){
+					if(call != null){
+						call.cancel();
+					}
+				}
 			}
 
 		});
@@ -368,6 +378,11 @@ public class HttpUtils {
 								callback.onError(error.toString());
 							}
 						});
+					}
+				}
+				if(mCancleWhenRequestFailed){
+					if(call != null){
+						call.cancel();
 					}
 				}
 			}
